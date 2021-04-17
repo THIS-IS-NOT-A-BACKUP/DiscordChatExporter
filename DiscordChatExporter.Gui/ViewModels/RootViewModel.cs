@@ -8,7 +8,6 @@ using DiscordChatExporter.Core.Discord.Data;
 using DiscordChatExporter.Core.Exceptions;
 using DiscordChatExporter.Core.Exporting;
 using DiscordChatExporter.Core.Utils.Extensions;
-using DiscordChatExporter.Gui.Internal;
 using DiscordChatExporter.Gui.Services;
 using DiscordChatExporter.Gui.Utils;
 using DiscordChatExporter.Gui.ViewModels.Dialogs;
@@ -65,18 +64,16 @@ namespace DiscordChatExporter.Gui.ViewModels
             DisplayName = $"{App.Name} v{App.VersionString}";
 
             // Update busy state when progress manager changes
-            ProgressManager.Bind(o => o.IsActive,
-                (sender, args) => IsBusy = ProgressManager.IsActive
+            ProgressManager.Bind(o => o.IsActive, (_, _) =>
+                IsBusy = ProgressManager.IsActive
             );
 
-            ProgressManager.Bind(o => o.IsActive,
-                (sender, args) => IsProgressIndeterminate =
-                    ProgressManager.IsActive && ProgressManager.Progress.IsEither(0, 1)
+            ProgressManager.Bind(o => o.IsActive, (_, _) =>
+                IsProgressIndeterminate = ProgressManager.IsActive && ProgressManager.Progress.IsEither(0, 1)
             );
 
-            ProgressManager.Bind(o => o.Progress,
-                (sender, args) => IsProgressIndeterminate =
-                    ProgressManager.IsActive && ProgressManager.Progress.IsEither(0, 1)
+            ProgressManager.Bind(o => o.Progress, (_, _) =>
+                IsProgressIndeterminate = ProgressManager.IsActive && ProgressManager.Progress.IsEither(0, 1)
             );
         }
 
@@ -214,7 +211,7 @@ namespace DiscordChatExporter.Gui.ViewModels
                         dialog.SelectedFormat,
                         dialog.After?.Pipe(Snowflake.FromDate),
                         dialog.Before?.Pipe(Snowflake.FromDate),
-                        CreatePartitioner(),
+                        dialog.PartitionLimit,
                         dialog.ShouldDownloadMedia,
                         _settingsService.ShouldReuseMedia,
                         _settingsService.DateFormat
@@ -237,19 +234,6 @@ namespace DiscordChatExporter.Gui.ViewModels
             // Notify of overall completion
             if (successfulExportCount > 0)
                 Notifications.Enqueue($"Successfully exported {successfulExportCount} channel(s)");
-
-            IPartitioner CreatePartitioner()
-            {
-                var partitionFormat = dialog.SelectedPartitionFormat;
-                var partitionLimit = dialog.PartitionLimit;
-
-                return (partitionFormat, partitionLimit) switch
-                {
-                    (PartitionFormat.MessageCount, int messageLimit) => new MessageCountPartitioner(messageLimit),
-                    (PartitionFormat.FileSize, int fileSizeLimit) => new FileSizePartitioner(fileSizeLimit),
-                    _ => new NullPartitioner()
-                };
-            }
         }
     }
 }

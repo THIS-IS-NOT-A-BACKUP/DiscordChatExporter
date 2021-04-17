@@ -10,19 +10,11 @@ namespace DiscordChatExporter.Core.Discord.Data.Common
         public double TotalKiloBytes => TotalBytes / 1024.0;
         public double TotalMegaBytes => TotalKiloBytes / 1024.0;
         public double TotalGigaBytes => TotalMegaBytes / 1024.0;
-        public double TotalTeraBytes => TotalGigaBytes / 1024.0;
-        public double TotalPetaBytes => TotalTeraBytes / 1024.0;
 
         public FileSize(long bytes) => TotalBytes = bytes;
 
         private double GetLargestWholeNumberValue()
         {
-            if (Math.Abs(TotalPetaBytes) >= 1)
-                return TotalPetaBytes;
-
-            if (Math.Abs(TotalTeraBytes) >= 1)
-                return TotalTeraBytes;
-
             if (Math.Abs(TotalGigaBytes) >= 1)
                 return TotalGigaBytes;
 
@@ -37,12 +29,6 @@ namespace DiscordChatExporter.Core.Discord.Data.Common
 
         private string GetLargestWholeNumberSymbol()
         {
-            if (Math.Abs(TotalPetaBytes) >= 1)
-                return "PB";
-
-            if (Math.Abs(TotalTeraBytes) >= 1)
-                return "TB";
-
             if (Math.Abs(TotalGigaBytes) >= 1)
                 return "GB";
 

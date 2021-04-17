@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using DiscordChatExporter.Gui.Internal;
 using DiscordChatExporter.Core.Discord;
 using DiscordChatExporter.Core.Discord.Data;
 using DiscordChatExporter.Core.Exporting;
+using DiscordChatExporter.Core.Exporting.Partitioning;
 using DiscordChatExporter.Core.Utils.Extensions;
 using DiscordChatExporter.Gui.Services;
 using DiscordChatExporter.Gui.ViewModels.Framework;
@@ -47,12 +47,11 @@ namespace DiscordChatExporter.Gui.ViewModels.Dialogs
 
         public DateTimeOffset? Before => BeforeDate?.Add(BeforeTime ?? TimeSpan.Zero);
 
-        public IReadOnlyList<PartitionFormat> AvailablePartitionFormats =>
-            Enum.GetValues(typeof(PartitionFormat)).Cast<PartitionFormat>().ToArray();
+        public string? PartitionLimitValue { get; set; }
 
-        public PartitionFormat SelectedPartitionFormat { get; set; }
-
-        public int? PartitionLimit { get; set; }
+        public PartitionLimit PartitionLimit => !string.IsNullOrWhiteSpace(PartitionLimitValue)
+            ? PartitionLimit.Parse(PartitionLimitValue)
+            : NullPartitionLimit.Instance;
 
         public bool ShouldDownloadMedia { get; set; }
 
@@ -61,7 +60,7 @@ namespace DiscordChatExporter.Gui.ViewModels.Dialogs
         public bool IsAdvancedSectionDisplayedByDefault =>
             After != default ||
             Before != default ||
-            PartitionLimit != default ||
+            !string.IsNullOrWhiteSpace(PartitionLimitValue) ||
             ShouldDownloadMedia != default;
 
         public ExportSetupViewModel(DialogManager dialogManager, SettingsService settingsService)
@@ -71,18 +70,15 @@ namespace DiscordChatExporter.Gui.ViewModels.Dialogs
 
             // Persist preferences
             SelectedFormat = _settingsService.LastExportFormat;
-            PartitionLimit = _settingsService.LastPartitionLimit;
+            PartitionLimitValue = _settingsService.LastPartitionLimitValue;
             ShouldDownloadMedia = _settingsService.LastShouldDownloadMedia;
-            SelectedPartitionFormat = _settingsService.LastPartitionFormat;
-
         }
 
         public void Confirm()
         {
             // Persist preferences
             _settingsService.LastExportFormat = SelectedFormat;
-            _settingsService.LastPartitionLimit = PartitionLimit;
-            _settingsService.LastPartitionFormat = SelectedPartitionFormat;
+            _settingsService.LastPartitionLimitValue = PartitionLimitValue;
             _settingsService.LastShouldDownloadMedia = ShouldDownloadMedia;
 
             // If single channel - prompt file path

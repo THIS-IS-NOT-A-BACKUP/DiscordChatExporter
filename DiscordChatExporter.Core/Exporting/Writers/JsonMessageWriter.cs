@@ -13,8 +13,6 @@ namespace DiscordChatExporter.Core.Exporting.Writers
     {
         private readonly Utf8JsonWriter _writer;
 
-        private long _messageCount;
-
         public JsonMessageWriter(Stream stream, ExportContext context)
             : base(stream, context)
         {
@@ -193,6 +191,7 @@ namespace DiscordChatExporter.Core.Exporting.Writers
             _writer.WriteStartObject("channel");
             _writer.WriteString("id", Context.Request.Channel.Id.ToString());
             _writer.WriteString("type", Context.Request.Channel.Type.ToString());
+            _writer.WriteString("categoryId", Context.Request.Channel.Category.Id.ToString());
             _writer.WriteString("category", Context.Request.Channel.Category.Name);
             _writer.WriteString("name", Context.Request.Channel.Name);
             _writer.WriteString("topic", Context.Request.Channel.Topic);
@@ -211,6 +210,8 @@ namespace DiscordChatExporter.Core.Exporting.Writers
 
         public override async ValueTask WriteMessageAsync(Message message)
         {
+            await base.WriteMessageAsync(message);
+
             _writer.WriteStartObject();
 
             // Metadata
@@ -279,8 +280,6 @@ namespace DiscordChatExporter.Core.Exporting.Writers
 
             _writer.WriteEndObject();
             await _writer.FlushAsync();
-
-            _messageCount++;
         }
 
         public override async ValueTask WritePostambleAsync()
@@ -288,7 +287,7 @@ namespace DiscordChatExporter.Core.Exporting.Writers
             // Message array (end)
             _writer.WriteEndArray();
 
-            _writer.WriteNumber("messageCount", _messageCount);
+            _writer.WriteNumber("messageCount", MessagesWritten);
 
             // Root object (end)
             _writer.WriteEndObject();
