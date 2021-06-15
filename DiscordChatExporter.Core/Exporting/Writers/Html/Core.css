@@ -244,14 +244,15 @@ img {
     flex-grow: 1;
     overflow: hidden;
     text-overflow: ellipsis;
-}
-
-.chatlog__reference-link:hover {
-    text-decoration: none;
+    cursor: pointer;
 }
 
 .chatlog__reference-content > * {
     display: inline;
+}
+
+.chatlog__reference-content > a:hover {
+    text-decoration: none;
 }
 
 .chatlog__reference-edited-timestamp {
@@ -455,6 +456,10 @@ img {
     max-width: 80px;
     max-height: 80px;
     border-radius: 3px;
+}
+
+.chatlog__embed-youtube-container {
+    margin-top: 0.6em;
 }
 
 .chatlog__embed-image-container {
