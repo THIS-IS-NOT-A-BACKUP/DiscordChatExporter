@@ -51,7 +51,7 @@ namespace DiscordChatExporter.Core.Discord
                 {
                     HttpStatusCode.Unauthorized => DiscordChatExporterException.Unauthorized(),
                     HttpStatusCode.Forbidden => DiscordChatExporterException.Forbidden(),
-                    HttpStatusCode.NotFound => DiscordChatExporterException.NotFound(),
+                    HttpStatusCode.NotFound => DiscordChatExporterException.NotFound(url),
                     _ => DiscordChatExporterException.FailedHttpRequest(response)
                 };
             }
@@ -141,10 +141,6 @@ namespace DiscordChatExporter.Core.Discord
                         : null;
 
                     var channel = Channel.Parse(channelJson, category, position);
-
-                    // We are only interested in text channels
-                    if (!channel.IsTextChannel)
-                        continue;
 
                     position++;
 

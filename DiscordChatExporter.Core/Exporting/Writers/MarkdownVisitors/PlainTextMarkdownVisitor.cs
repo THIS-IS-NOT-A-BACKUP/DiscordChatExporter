@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using DiscordChatExporter.Core.Discord;
 using DiscordChatExporter.Core.Markdown;
-using DiscordChatExporter.Core.Markdown.Ast;
+using DiscordChatExporter.Core.Markdown.Parsing;
 using DiscordChatExporter.Core.Utils.Extensions;
 
 namespace DiscordChatExporter.Core.Exporting.Writers.MarkdownVisitors
@@ -23,28 +23,43 @@ namespace DiscordChatExporter.Core.Exporting.Writers.MarkdownVisitors
             return base.VisitText(text);
         }
 
+        protected override MarkdownNode VisitEmoji(EmojiNode emoji)
+        {
+            _buffer.Append(
+                emoji.IsCustomEmoji
+                    ? $":{emoji.Name}:"
+                    : emoji.Name
+            );
+
+            return base.VisitEmoji(emoji);
+        }
+
         protected override MarkdownNode VisitMention(MentionNode mention)
         {
             var mentionId = Snowflake.TryParse(mention.Id);
-            if (mention.Type == MentionType.Meta)
+            if (mention.Kind == MentionKind.Meta)
             {
                 _buffer.Append($"@{mention.Id}");
             }
-            else if (mention.Type == MentionType.User)
+            else if (mention.Kind == MentionKind.User)
             {
                 var member = mentionId?.Pipe(_context.TryGetMember);
                 var name = member?.User.Name ?? "Unknown";
 
                 _buffer.Append($"@{name}");
             }
-            else if (mention.Type == MentionType.Channel)
+            else if (mention.Kind == MentionKind.Channel)
             {
                 var channel = mentionId?.Pipe(_context.TryGetChannel);
                 var name = channel?.Name ?? "deleted-channel";
 
                 _buffer.Append($"#{name}");
+
+                // Voice channel marker
+                if (channel?.IsVoiceChannel == true)
+                    _buffer.Append(" [voice]");
             }
-            else if (mention.Type == MentionType.Role)
+            else if (mention.Kind == MentionKind.Role)
             {
                 var role = mentionId?.Pipe(_context.TryGetRole);
                 var name = role?.Name ?? "deleted-role";
@@ -55,15 +70,13 @@ namespace DiscordChatExporter.Core.Exporting.Writers.MarkdownVisitors
             return base.VisitMention(mention);
         }
 
-        protected override MarkdownNode VisitEmoji(EmojiNode emoji)
+        protected override MarkdownNode VisitUnixTimestamp(UnixTimestampNode timestamp)
         {
             _buffer.Append(
-                emoji.IsCustomEmoji
-                    ? $":{emoji.Name}:"
-                    : emoji.Name
+                _context.FormatDate(timestamp.Value)
             );
 
-            return base.VisitEmoji(emoji);
+            return base.VisitUnixTimestamp(timestamp);
         }
     }
 

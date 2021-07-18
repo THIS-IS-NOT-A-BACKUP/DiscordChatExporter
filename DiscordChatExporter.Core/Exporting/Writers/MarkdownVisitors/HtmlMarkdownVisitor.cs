@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 using DiscordChatExporter.Core.Discord;
 using DiscordChatExporter.Core.Discord.Data;
 using DiscordChatExporter.Core.Markdown;
-using DiscordChatExporter.Core.Markdown.Ast;
+using DiscordChatExporter.Core.Markdown.Parsing;
 using DiscordChatExporter.Core.Utils.Extensions;
 
 namespace DiscordChatExporter.Core.Exporting.Writers.MarkdownVisitors
@@ -75,67 +75,6 @@ namespace DiscordChatExporter.Core.Exporting.Writers.MarkdownVisitors
             return base.VisitMultiLineCodeBlock(multiLineCodeBlock);
         }
 
-        protected override MarkdownNode VisitMention(MentionNode mention)
-        {
-            var mentionId = Snowflake.TryParse(mention.Id);
-            if (mention.Type == MentionType.Meta)
-            {
-                _buffer
-                    .Append("<span class=\"mention\">")
-                    .Append("@").Append(HtmlEncode(mention.Id))
-                    .Append("</span>");
-            }
-            else if (mention.Type == MentionType.User)
-            {
-                var member = mentionId?.Pipe(_context.TryGetMember);
-                var fullName = member?.User.FullName ?? "Unknown";
-                var nick = member?.Nick ?? "Unknown";
-
-                _buffer
-                    .Append($"<span class=\"mention\" title=\"{HtmlEncode(fullName)}\">")
-                    .Append("@").Append(HtmlEncode(nick))
-                    .Append("</span>");
-            }
-            else if (mention.Type == MentionType.Channel)
-            {
-                var channel = mentionId?.Pipe(_context.TryGetChannel);
-                var name = channel?.Name ?? "deleted-channel";
-
-                _buffer
-                    .Append("<span class=\"mention\">")
-                    .Append("#").Append(HtmlEncode(name))
-                    .Append("</span>");
-            }
-            else if (mention.Type == MentionType.Role)
-            {
-                var role = mentionId?.Pipe(_context.TryGetRole);
-                var name = role?.Name ?? "deleted-role";
-                var color = role?.Color;
-
-                var style = color is not null
-                    ? $"color: rgb({color?.R}, {color?.G}, {color?.B}); background-color: rgba({color?.R}, {color?.G}, {color?.B}, 0.1);"
-                    : "";
-
-                _buffer
-                    .Append($"<span class=\"mention\" style=\"{style}\">")
-                    .Append("@").Append(HtmlEncode(name))
-                    .Append("</span>");
-            }
-
-            return base.VisitMention(mention);
-        }
-
-        protected override MarkdownNode VisitEmoji(EmojiNode emoji)
-        {
-            var emojiImageUrl = Emoji.GetImageUrl(emoji.Id, emoji.Name, emoji.IsAnimated);
-            var jumboClass = _isJumbo ? "emoji--large" : "";
-
-            _buffer
-                .Append($"<img loading=\"lazy\" class=\"emoji {jumboClass}\" alt=\"{emoji.Name}\" title=\"{emoji.Code}\" src=\"{emojiImageUrl}\">");
-
-            return base.VisitEmoji(emoji);
-        }
-
         protected override MarkdownNode VisitLink(LinkNode link)
         {
             // Extract message ID if the link points to a Discord message
@@ -157,6 +96,78 @@ namespace DiscordChatExporter.Core.Exporting.Writers.MarkdownVisitors
             }
 
             return base.VisitLink(link);
+        }
+
+        protected override MarkdownNode VisitEmoji(EmojiNode emoji)
+        {
+            var emojiImageUrl = Emoji.GetImageUrl(emoji.Id, emoji.Name, emoji.IsAnimated);
+            var jumboClass = _isJumbo ? "emoji--large" : "";
+
+            _buffer
+                .Append($"<img loading=\"lazy\" class=\"emoji {jumboClass}\" alt=\"{emoji.Name}\" title=\"{emoji.Code}\" src=\"{emojiImageUrl}\">");
+
+            return base.VisitEmoji(emoji);
+        }
+
+        protected override MarkdownNode VisitMention(MentionNode mention)
+        {
+            var mentionId = Snowflake.TryParse(mention.Id);
+            if (mention.Kind == MentionKind.Meta)
+            {
+                _buffer
+                    .Append("<span class=\"mention\">")
+                    .Append("@").Append(HtmlEncode(mention.Id))
+                    .Append("</span>");
+            }
+            else if (mention.Kind == MentionKind.User)
+            {
+                var member = mentionId?.Pipe(_context.TryGetMember);
+                var fullName = member?.User.FullName ?? "Unknown";
+                var nick = member?.Nick ?? "Unknown";
+
+                _buffer
+                    .Append($"<span class=\"mention\" title=\"{HtmlEncode(fullName)}\">")
+                    .Append("@").Append(HtmlEncode(nick))
+                    .Append("</span>");
+            }
+            else if (mention.Kind == MentionKind.Channel)
+            {
+                var channel = mentionId?.Pipe(_context.TryGetChannel);
+                var symbol = channel?.IsVoiceChannel == true ? "🔊" : "#";
+                var name = channel?.Name ?? "deleted-channel";
+
+                _buffer
+                    .Append("<span class=\"mention\">")
+                    .Append(symbol).Append(HtmlEncode(name))
+                    .Append("</span>");
+            }
+            else if (mention.Kind == MentionKind.Role)
+            {
+                var role = mentionId?.Pipe(_context.TryGetRole);
+                var name = role?.Name ?? "deleted-role";
+                var color = role?.Color;
+
+                var style = color is not null
+                    ? $"color: rgb({color?.R}, {color?.G}, {color?.B}); background-color: rgba({color?.R}, {color?.G}, {color?.B}, 0.1);"
+                    : "";
+
+                _buffer
+                    .Append($"<span class=\"mention\" style=\"{style}\">")
+                    .Append("@").Append(HtmlEncode(name))
+                    .Append("</span>");
+            }
+
+            return base.VisitMention(mention);
+        }
+
+        protected override MarkdownNode VisitUnixTimestamp(UnixTimestampNode timestamp)
+        {
+            _buffer
+                .Append("<span class=\"timestamp\">")
+                .Append(HtmlEncode(_context.FormatDate(timestamp.Value)))
+                .Append("</span>");
+
+            return base.VisitUnixTimestamp(timestamp);
         }
     }
 
