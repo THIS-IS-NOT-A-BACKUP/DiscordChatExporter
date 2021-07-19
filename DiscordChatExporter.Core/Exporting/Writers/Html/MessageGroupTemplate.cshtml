@@ -1,6 +1,7 @@
 @using System
 @using System.Linq
 @using System.Threading.Tasks
+@using DiscordChatExporter.Core.Exporting.Writers.Html;
 
 @namespace DiscordChatExporter.Core.Exporting.Writers.Html
 @inherits MiniRazor.TemplateBase<MessageGroupTemplateContext>
@@ -61,6 +62,10 @@
                         {
                             @Raw(FormatEmbedMarkdown(Model.MessageGroup.ReferencedMessage.Content))
                         }
+                        else if (Model.MessageGroup.ReferencedMessage.Attachments.Any() || Model.MessageGroup.ReferencedMessage.Embeds.Any())
+                        {
+                            <em>Click to see attachment</em> <span>🖼️</span>
+                        }
                         else
                         {
                             <em>Click to see original message</em>
@@ -76,7 +81,7 @@
             else
             {
                 <span class="chatlog__reference-unknown">
-                    Original message was deleted.
+                    Original message was deleted or could not be loaded.
                 </span>
             }
         </div>

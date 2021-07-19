@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.Json;
 using DiscordChatExporter.Core.Discord.Data.Common;
@@ -9,7 +10,7 @@ using JsonExtensions.Reading;
 namespace DiscordChatExporter.Core.Discord.Data
 {
     // https://discord.com/developers/docs/resources/channel#message-object-message-types
-    public enum MessageType
+    public enum MessageKind
     {
         Default = 0,
         RecipientAdd = 1,
@@ -27,7 +28,7 @@ namespace DiscordChatExporter.Core.Discord.Data
     {
         public Snowflake Id { get; }
 
-        public MessageType Type { get; }
+        public MessageKind Kind { get; }
 
         public User Author { get; }
 
@@ -55,7 +56,7 @@ namespace DiscordChatExporter.Core.Discord.Data
 
         public Message(
             Snowflake id,
-            MessageType type,
+            MessageKind kind,
             User author,
             DateTimeOffset timestamp,
             DateTimeOffset? editedTimestamp,
@@ -70,7 +71,7 @@ namespace DiscordChatExporter.Core.Discord.Data
             Message? referencedMessage)
         {
             Id = id;
-            Type = type;
+            Kind = kind;
             Author = author;
             Timestamp = timestamp;
             EditedTimestamp = editedTimestamp;
@@ -85,6 +86,7 @@ namespace DiscordChatExporter.Core.Discord.Data
             ReferencedMessage = referencedMessage;
         }
 
+        [ExcludeFromCodeCoverage]
         public override string ToString() => Content;
     }
 
@@ -97,21 +99,21 @@ namespace DiscordChatExporter.Core.Discord.Data
             var timestamp = json.GetProperty("timestamp").GetDateTimeOffset();
             var editedTimestamp = json.GetPropertyOrNull("edited_timestamp")?.GetDateTimeOffset();
             var callEndedTimestamp = json.GetPropertyOrNull("call")?.GetPropertyOrNull("ended_timestamp")?.GetDateTimeOffset();
-            var type = (MessageType) json.GetProperty("type").GetInt32();
+            var kind = (MessageKind) json.GetProperty("type").GetInt32();
             var isPinned = json.GetPropertyOrNull("pinned")?.GetBoolean() ?? false;
             var messageReference = json.GetPropertyOrNull("message_reference")?.Pipe(MessageReference.Parse);
             var referencedMessage = json.GetPropertyOrNull("referenced_message")?.Pipe(Parse);
 
-            var content = type switch
+            var content = kind switch
             {
-                MessageType.RecipientAdd => "Added a recipient.",
-                MessageType.RecipientRemove => "Removed a recipient.",
-                MessageType.Call =>
+                MessageKind.RecipientAdd => "Added a recipient.",
+                MessageKind.RecipientRemove => "Removed a recipient.",
+                MessageKind.Call =>
                     $"Started a call that lasted {callEndedTimestamp?.Pipe(t => t - timestamp).Pipe(t => (int) t.TotalMinutes) ?? 0} minutes.",
-                MessageType.ChannelNameChange => "Changed the channel name.",
-                MessageType.ChannelIconChange => "Changed the channel icon.",
-                MessageType.ChannelPinnedMessage => "Pinned a message.",
-                MessageType.GuildMemberJoin => "Joined the server.",
+                MessageKind.ChannelNameChange => "Changed the channel name.",
+                MessageKind.ChannelIconChange => "Changed the channel icon.",
+                MessageKind.ChannelPinnedMessage => "Pinned a message.",
+                MessageKind.GuildMemberJoin => "Joined the server.",
                 _ => json.GetPropertyOrNull("content")?.GetString() ?? ""
             };
 
@@ -133,7 +135,7 @@ namespace DiscordChatExporter.Core.Discord.Data
 
             return new Message(
                 id,
-                type,
+                kind,
                 author,
                 timestamp,
                 editedTimestamp,
