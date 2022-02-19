@@ -39,7 +39,8 @@ internal partial class HtmlMarkdownVisitor : MarkdownVisitor
             FormattingKind.Strikethrough => ("<s>", "</s>"),
             FormattingKind.Spoiler => (
                 "<span class=\"spoiler-text spoiler-text--hidden\" onclick=\"showSpoiler(event, this)\">", "</span>"),
-            FormattingKind.Quote => ("<div class=\"quote\">", "</div>"),
+            FormattingKind.Quote => (
+                "<div class=\"quote\"><div class=\"quote-border\"></div><div class=\"quote-content\">", "</div></div>"),
             _ => throw new ArgumentOutOfRangeException(nameof(formatting.Kind))
         };
 
@@ -84,8 +85,8 @@ internal partial class HtmlMarkdownVisitor : MarkdownVisitor
 
         _buffer.Append(
             !string.IsNullOrWhiteSpace(linkedMessageId)
-                ? $"<a href=\"{Uri.EscapeUriString(link.Url)}\" onclick=\"scrollToMessage(event, '{linkedMessageId}')\">"
-                : $"<a href=\"{Uri.EscapeUriString(link.Url)}\">"
+                ? $"<a href=\"{HtmlEncode(link.Url)}\" onclick=\"scrollToMessage(event, '{linkedMessageId}')\">"
+                : $"<a href=\"{HtmlEncode(link.Url)}\">"
         );
 
         var result = base.VisitLink(link);
@@ -107,27 +108,34 @@ internal partial class HtmlMarkdownVisitor : MarkdownVisitor
 
     protected override MarkdownNode VisitMention(MentionNode mention)
     {
-        if (mention.Kind == MentionKind.Meta)
+        if (mention.Kind == MentionKind.Everyone)
         {
             _buffer
                 .Append("<span class=\"mention\">")
-                .Append("@").Append(HtmlEncode(mention.Id.ToString()))
+                .Append("@everyone")
+                .Append("</span>");
+        }
+        else if (mention.Kind == MentionKind.Here)
+        {
+            _buffer
+                .Append("<span class=\"mention\">")
+                .Append("@here")
                 .Append("</span>");
         }
         else if (mention.Kind == MentionKind.User)
         {
-            var member = _context.TryGetMember(mention.Id);
+            var member = mention.TargetId?.Pipe(_context.TryGetMember);
             var fullName = member?.User.FullName ?? "Unknown";
             var nick = member?.Nick ?? "Unknown";
 
             _buffer
                 .Append($"<span class=\"mention\" title=\"{HtmlEncode(fullName)}\">")
-                .Append("@").Append(HtmlEncode(nick))
+                .Append('@').Append(HtmlEncode(nick))
                 .Append("</span>");
         }
         else if (mention.Kind == MentionKind.Channel)
         {
-            var channel = _context.TryGetChannel(mention.Id);
+            var channel = mention.TargetId?.Pipe(_context.TryGetChannel);
             var symbol = channel?.IsVoiceChannel == true ? "🔊" : "#";
             var name = channel?.Name ?? "deleted-channel";
 
@@ -138,7 +146,7 @@ internal partial class HtmlMarkdownVisitor : MarkdownVisitor
         }
         else if (mention.Kind == MentionKind.Role)
         {
-            var role = _context.TryGetRole(mention.Id);
+            var role = mention.TargetId?.Pipe(_context.TryGetRole);
             var name = role?.Name ?? "deleted-role";
             var color = role?.Color;
 
@@ -148,7 +156,7 @@ internal partial class HtmlMarkdownVisitor : MarkdownVisitor
 
             _buffer
                 .Append($"<span class=\"mention\" style=\"{style}\">")
-                .Append("@").Append(HtmlEncode(name))
+                .Append('@').Append(HtmlEncode(name))
                 .Append("</span>");
         }
 
