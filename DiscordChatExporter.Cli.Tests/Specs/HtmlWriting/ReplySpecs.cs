@@ -20,8 +20,8 @@ public record ReplySpecs(ExportWrapperFixture ExportWrapper) : IClassFixture<Exp
         );
 
         // Assert
-        message.Text().Trim().Should().Be("reply to original");
-        message.QuerySelector(".chatlog__reference-link")?.Text().Trim().Should().Be("original");
+        message.Text().Trim().Should().Contain("reply to original");
+        message.QuerySelector(".chatlog__reference-link")?.Text().Trim().Should().Contain("original");
     }
 
     [Fact]
@@ -34,13 +34,13 @@ public record ReplySpecs(ExportWrapperFixture ExportWrapper) : IClassFixture<Exp
         );
 
         // Assert
-        message.Text().Trim().Should().Be("reply to deleted");
+        message.Text().Trim().Should().Contain("reply to deleted");
         message.QuerySelector(".chatlog__reference-link")?.Text().Trim().Should()
-            .Be("Original message was deleted or could not be loaded.");
+            .Contain("Original message was deleted or could not be loaded.");
     }
 
     [Fact]
-    public async Task Reply_to_a_empty_message_with_attachment_is_rendered_correctly()
+    public async Task Reply_to_an_empty_message_with_attachment_is_rendered_correctly()
     {
         // Act
         var message = await ExportWrapper.GetMessageAsHtmlAsync(
@@ -49,8 +49,8 @@ public record ReplySpecs(ExportWrapperFixture ExportWrapper) : IClassFixture<Exp
         );
 
         // Assert
-        message.Text().Trim().Should().Be("reply to attachment");
+        message.Text().Trim().Should().Contain("reply to attachment");
         message.QuerySelector(".chatlog__reference-link")?.Text().Trim().Should()
-            .Be("Click to see attachment 🖼️");
+            .Contain("Click to see attachment");
     }
 }
